@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Connecting TikTok · Agent World</title>
+<style>body{margin:0;font:17px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#14141c;color:#ececf3;display:grid;place-items:center;min-height:100vh}main{max-width:520px;padding:24px 16px;text-align:center}a{color:#a993ff}</style>
+</head><body><main><h1 style="font-size:22px">Connecting TikTok…</h1><p id="msg">Passing TikTok's answer to Agent World on your Mac.</p></main>
+<script>
+// TikTok sends the browser here with ?code=…&state=… (or ?error=…). This page holds no secrets: it hands the answer to
+// Agent World on the owner's Mac (reachable only from the owner's own devices), which checks the state and swaps the code.
+var AW = 'https://dr-hayders-macbook-pro.tail4fc753.ts.net/tiktok/callback';
+if (location.search) location.replace(AW + location.search);
+else document.getElementById('msg').textContent = 'Nothing to do here: start from Connect TikTok in Agent World.';
+</script></body></html>
