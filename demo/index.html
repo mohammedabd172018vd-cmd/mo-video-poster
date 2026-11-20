@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mo Video Poster · Demo</title>
+<style>
+  :root { --bg: #ffffff; --fg: #1d1d27; --muted: #5d5d70; --accent: #fe2c55; --card: #f5f4fa; --line: #e4e2ef; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #14141c; --fg: #ececf3; --muted: #a3a3b8; --card: #1e1e2a; --line: #2c2b3a; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 40px 16px 64px; }
+  h1 { font-size: 28px; margin: 0 0 4px; }
+  .muted { color: var(--muted); }
+  .btn { display: inline-flex; align-items: center; gap: 10px; background: #000; color: #fff; border: 0; border-radius: 10px; padding: 13px 20px; font: 600 16px/1 inherit; cursor: pointer; margin-top: 20px; }
+  .btn:disabled { opacity: .6; cursor: default; }
+  .note { margin-top: 16px; padding: 12px 14px; border-radius: 10px; background: var(--card); border: 1px solid var(--line); font-size: 14px; }
+  .err { border-color: #e5484d; }
+  .profile { display: flex; gap: 14px; align-items: center; margin: 24px 0 18px; }
+  .profile img { width: 64px; height: 64px; border-radius: 50%; background: var(--card); object-fit: cover; }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .stat { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+  .stat b { display: block; font-size: 22px; }
+  .stat span { font-size: 13px; color: var(--muted); }
+  h2 { font-size: 18px; margin: 28px 0 10px; }
+  .vid { display: flex; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--line); }
+  .vid img { width: 54px; height: 72px; object-fit: cover; border-radius: 6px; background: var(--card); flex: none; }
+  .vid .t { flex: 1; min-width: 0; }
+  .vid .t div:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .vid .v { font-weight: 700; white-space: nowrap; }
+  footer { margin-top: 40px; font-size: 14px; }
+  a { color: var(--accent); }
+  @media (max-width: 520px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Mo Video Poster</h1>
+  <p class="muted">See your own TikTok follower stats and video views. Log in with TikTok to continue.</p>
+  <div id="out"><button class="btn" id="login" type="button">Log in with TikTok</button></div>
+  <footer class="muted"><a href="../terms/">Terms of Service</a> · <a href="../privacy/">Privacy Policy</a></footer>
+</main>
+<script>
+// The client secret never lives on this page: the owner's computer swaps TikTok's code for a token and returns only the stats.
+const API = 'https://dr-hayders-macbook-pro.tail4fc753.ts.net';
+const out = document.getElementById('out');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const n = v => v == null ? '–' : Number(v).toLocaleString('en-GB');
+const note = (msg, bad) => `<div class="note${bad ? ' err' : ''}">${esc(msg)}</div>`;
+
+function bindLogin() {
+  const b = document.getElementById('login'); if (!b) return;
+  b.onclick = async () => {
+    b.disabled = true; b.textContent = 'Opening TikTok…';
+    try {
+      const r = await (await fetch(API + '/tiktok-demo/start')).json();
+      if (!r.ok) throw new Error(r.message);
+      location.href = r.url;
+    } catch (e) { out.innerHTML = note('Could not start the login: ' + e.message, true) + '<button class="btn" id="login" type="button">Try again</button>'; bindLogin(); }
+  };
+}
+
+async function finish(code, state) {
+  out.innerHTML = note('Logged in. Loading your stats…');
+  history.replaceState(null, '', location.pathname);   // take the code out of the address bar
+  try {
+    const r = await (await fetch(API + '/tiktok-demo/exchange', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ code, state }) })).json();
+    if (!r.ok) throw new Error(r.message);
+    const u = r.user || {};
+    out.innerHTML = `
+      <div class="profile">${u.avatar_url ? `<img src="${esc(u.avatar_url)}" alt="">` : '<img alt="">'}
+        <div><div style="font-size:20px;font-weight:700">${esc(u.display_name || 'Your account')}</div>${u.username ? `<div class="muted">@${esc(u.username)}</div>` : ''}</div></div>
+      <div class="stats">
+        <div class="stat"><b>${n(u.follower_count)}</b><span>Followers</span></div>
+        <div class="stat"><b>${n(u.following_count)}</b><span>Following</span></div>
+        <div class="stat"><b>${n(u.likes_count)}</b><span>Likes</span></div>
+        <div class="stat"><b>${n(u.video_count)}</b><span>Videos</span></div>
+      </div>
+      <h2>Your videos and views</h2>
+      ${(r.videos || []).length ? r.videos.map(v => `<div class="vid">${v.cover_image_url ? `<img src="${esc(v.cover_image_url)}" alt="">` : '<img alt="">'}
+          <div class="t"><div>${esc(v.title || v.video_description || 'Untitled video')}</div><div class="muted" style="font-size:13px">${v.create_time ? new Date(v.create_time * 1000).toLocaleDateString('en-GB') : ''} · ${n(v.like_count)} likes · ${n(v.comment_count)} comments</div></div>
+          <div class="v">${n(v.view_count)} views</div></div>`).join('') : note('No public videos yet.')}
+      <p class="muted" style="font-size:13px;margin-top:18px">Permissions granted: ${esc(r.scope)}</p>`;
+  } catch (e) { out.innerHTML = note('Could not load your stats: ' + e.message, true) + '<button class="btn" id="login" type="button">Log in with TikTok</button>'; bindLogin(); }
+}
+
+const q = new URLSearchParams(location.search);
+if (q.get('error')) { out.innerHTML = note('TikTok login was cancelled: ' + (q.get('error_description') || q.get('error')), true) + '<button class="btn" id="login" type="button">Log in with TikTok</button>'; history.replaceState(null, '', location.pathname); }
+if (q.get('code')) finish(q.get('code'), q.get('state')); else bindLogin();
+</script>
+</body>
+</html>
