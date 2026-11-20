@@ -85,8 +85,12 @@ async function finish(code, state) {
 }
 
 const q = new URLSearchParams(location.search);
+// An Agent World "Connect TikTok" login (its state starts with "aw."): hand it to Agent World on the owner's Mac
+if ((q.get('state') || '').startsWith('aw.')) { location.replace(API + '/tiktok/callback' + location.search); }
+else {
 if (q.get('error')) { out.innerHTML = note('TikTok login was cancelled: ' + (q.get('error_description') || q.get('error')), true) + '<button class="btn" id="login" type="button">Log in with TikTok</button>'; history.replaceState(null, '', location.pathname); }
 if (q.get('code')) finish(q.get('code'), q.get('state')); else bindLogin();
+}
 </script>
 </body>
 </html>
